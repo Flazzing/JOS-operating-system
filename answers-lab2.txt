@@ -1,0 +1,13 @@
+exercise 3 : The variable x should have a type of uintptr_t.
+
+exercise 5:
+	
+2) 
+
+3) Segmentation, and paging is the mechanism that protects the kernel memory. When segmentation is not enable, paging will be used. When paging is used, and the user permission flag is not being enable (PTE_U), the user permission program with no kernel access cannot access the kernel's memory. 
+
+4) 2gb, because UPAGES is 4mb, PAGEINFO is 8 bytes. So for each page, the maximum size can be calculated as 8mb / 4 bytes. The size for a page is 4 kb, so the maximum for physical memory is 4mb/8bytes*4kb =2gb
+
+5) PageInfo requires 4mb, 2mb for page table, and 4kb for page directory. All to manage memory. 
+
+6) 
