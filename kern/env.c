@@ -116,6 +116,27 @@ env_init(void)
 {
 	// Set up envs array
 	// LAB 3: Your code here.
+	// SHould consist of NENV so NENV Should be the max init
+
+	int i = 0;
+	cprintf("NENV %d", NENV);
+	for ( ;  i < NENV ; i++) {
+		envs[i].env_id = 0;
+		envs[i].env_status = ENV_FREE;
+		
+		if (i == 0) {
+		  envs[i].env_link == NULL;
+		}
+		
+		if ( i > 0) {
+   		  envs[i].env_link = env_free_list;
+		}
+
+		env_free_list = &envs[i]; // should work as iterator
+	}	
+
+	//cprintf("NENV finish executed", NENV);
+
 
 	// Per-CPU part of the initialization
 	env_init_percpu();
@@ -182,7 +203,17 @@ env_setup_vm(struct Env *e)
 
 	// UVPT maps the env's own page table read-only.
 	// Permissions: kernel R, user R
+
+	// setup end my work here
+	e->env_pgdir = page2kva(p);
+
+	for (int i = PDX(UTOP); i<NPDENTRIES; ++i){
+		e->env_pgdir[i] = kern_pgdir[i];
+	}
+
 	e->env_pgdir[PDX(UVPT)] = PADDR(e->env_pgdir) | PTE_P | PTE_U;
+
+	p->pp_ref++;
 
 	return 0;
 }
@@ -267,6 +298,22 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   'va' and 'len' values that are not page-aligned.
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
+
+        uint32_t va_down = ROUNDDOWN((uint32_t)va, PGSIZE); // reminder stop here va is round down
+	uint32_t va_up = ROUNDUP((uint32_t) va + len, PGSIZE); //va + len round up
+
+	cprintf("va down is %d\n", va_down);
+
+	// map virtual address 
+
+	cprintf("va down: %p\n", va_down);
+	cprintf("va up: %p\n", va_up);
+	uint32_t i = 0;
+	for ( i = va_down; i < va_up; i += PGSIZE){
+		struct PageInfo *phypage = page_alloc(0);
+		page_insert(e->env_pgdir, phypage, (void *) i, PTE_W | PTE_U);
+	}
+
 }
 
 //
@@ -328,6 +375,39 @@ load_icode(struct Env *e, uint8_t *binary)
 	// at virtual address USTACKTOP - PGSIZE.
 
 	// LAB 3: Your code here.
+	
+
+	uint32_t prev_cr3 = rcr3();
+	lcr3(PADDR(e->env_pgdir)); // freely access the memory space within the environemnt
+             
+
+        struct Elf *elf = (struct Elf *) binary;
+      
+	// boot/main.c
+	struct Proghdr *ph, *eph;
+	// is this a valid ELF?
+	if (elf->e_magic != ELF_MAGIC){
+		panic("ELF IS NOT A VALID ELF");
+	}
+      
+         ph = (struct Proghdr *) ((uint8_t *) elf + elf->e_phoff);
+	 eph = ph + elf->e_phnum;
+
+	 for (; ph < eph; ph++){
+		 if (ph->p_type == ELF_PROG_LOAD) {
+
+			 // its size in memory can be found in ph->p_memsz 
+			 region_alloc(e,(void *) ph->p_va, ph->p_memsz);
+			 // all must be zero, so the rest can be zero
+			 memset((void *) ph->p_va, 0, ph->p_memsz);
+			 memcpy((void *) ph->p_va, (binary + ph->p_offset), ph->p_filesz);
+			 
+		 }
+	 }
+   
+	e->env_tf.tf_eip = elf->e_entry; // set the entry point 
+	region_alloc(e, (void *)(USTACKTOP - PGSIZE), PGSIZE);
+	lcr3(prev_cr3);
 }
 
 //
@@ -341,6 +421,10 @@ void
 env_create(uint8_t *binary, enum EnvType type)
 {
 	// LAB 3: Your code here.
+	struct Env *env = NULL;
+	env_alloc(&env, 0);
+	load_icode(env, binary);
+	env->env_type = type;
 }
 
 //
@@ -458,6 +542,34 @@ env_run(struct Env *e)
 
 	// LAB 3: Your code here.
 
-	panic("env_run not yet implemented");
+
+	// missing rist call curenv is NULL
+
+	// if( curenv == NULL)(
+	// first cal lwhat should i do 
+//        }
+
+	if ( curenv != e) // confuse  
+	{	
+		// check contact switch
+	       	if (curenv != NULL && curenv->env_status == ENV_RUNNING)
+		{
+			curenv->env_status = ENV_RUNNABLE;
+		}
+	
+		curenv = e; // switch to new environment 
+		curenv->env_status = ENV_RUNNING; 
+		curenv->env_runs++;
+		lcr3(PADDR(curenv->env_pgdir)); // switch to its address space
+	}
+
+
+
+
+//	panic("env_alloc: %e", -E_NO_MEM);
+	env_pop_tf(&curenv->env_tf);
+
+//      panic("env_alloc: %e", -E_NO_MEM);
+
 }
 

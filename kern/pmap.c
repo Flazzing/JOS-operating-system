@@ -97,7 +97,7 @@ boot_alloc(uint32_t n)
 	// to any kernel code or global variables.
 	if (!nextfree) {
 		extern char end[];
-		nextfree = ROUNDUP((char *) end, PGSIZE);
+		nextfree = ROUNDUP((char *) end + 1, PGSIZE);
 	}
 
 	// ran out of memory
@@ -202,9 +202,14 @@ mem_init(void)
 	memset(pages, 0, (size_t) npages * sizeof(struct PageInfo));
 //	cprintf("Total pages in global: %d\n", npages );
 
+
 	//////////////////////////////////////////////////////////////////////
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
 	// LAB 3: Your code here.
+
+
+	envs = (struct Env *) boot_alloc(sizeof (struct Env) * NENV ); 
+
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -231,7 +236,8 @@ mem_init(void)
 	// Your code goes here:
 
 	boot_map_region(kern_pgdir, UPAGES, PTSIZE, PADDR(pages), PTE_U | PTE_P);
-	cprintf("succes 1 \n");
+//	cprintf("succes 1 \n");
+
 
 	//////////////////////////////////////////////////////////////////////
 	// Map the 'envs' array read-only by the user at linear address UENVS
@@ -240,6 +246,8 @@ mem_init(void)
 	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
 	// LAB 3: Your code here.
+	boot_map_region(kern_pgdir, UENVS, PTSIZE, PADDR(envs), PTE_U);
+
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -254,7 +262,7 @@ mem_init(void)
 	// Your code goes here:
 
 	boot_map_region(kern_pgdir, KSTACKTOP-KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_W);
-	cprintf("SUCCESS 2\n");
+	//cprintf("SUCCESS 2\n");
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
@@ -265,9 +273,9 @@ mem_init(void)
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
 	
-	cprintf("%d kernbased\n", -KERNBASE);
+	//cprintf("%d kernbased\n", -KERNBASE);
 	boot_map_region(kern_pgdir, KERNBASE, -KERNBASE, 0, PTE_W);
-	cprintf("Success 3 \n");
+	//cprintf("Success 3 \n");
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
@@ -499,7 +507,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 	    return &page_table[PTX(va)];
 	}
 
-	cprintf("Something is wrong\n");
+	//cprintf("Something is wrong\n");
 	return NULL;
 }
 
@@ -532,7 +540,7 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 		va += PGSIZE;
 		pa += PGSIZE;
 	}
-	cprintf("boot map executed success\n");
+	//cprintf("boot map executed success\n");
 }
 
 //
@@ -564,7 +572,7 @@ int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
-	cprintf("start executing at page insert\n");
+	//cprintf("start executing at page insert\n");
 	pte_t *p_pte = pgdir_walk(pgdir, va, 1);
 
 
@@ -583,7 +591,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 
 	tlb_invalidate(pgdir, va);
 
-	cprintf("executed succesfuly at page insert\n");
+	//cprintf("executed succesfuly at page insert\n");
 	return 0;
 }
 
@@ -602,7 +610,7 @@ struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
-	cprintf("page lookup executing\n");
+	//cprintf("page lookup executing\n");
 	struct PageInfo *page = NULL;
 	pte_t *p_pte = pgdir_walk(pgdir, va, 0);
 
@@ -614,7 +622,7 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 		return NULL;
 	}
 
-	cprintf("page-lookup @ pgdir_walk success\n");
+	//cprintf("page-lookup @ pgdir_walk success\n");
 	if (pte_store != NULL){
 		*pte_store = p_pte;
 	}
@@ -643,16 +651,16 @@ void
 page_remove(pde_t *pgdir, void *va)
 {
 	// Fill this function in
-	cprintf("exe at page remove\n");
+	//cprintf("exe at page remove\n");
 	pte_t *p_pte;
 	struct PageInfo *pp = page_lookup(pgdir, va, &p_pte);
-	if (!(*p_pte & PTE_P) || !pp ){
+	if (!(*p_pte & PTE_P) || !pp ){ // TA physical page doesnt exist 
 		return ;
 	}
 		*p_pte = 0;
 		page_decref(pp);
 		tlb_invalidate(pgdir, va);
-	cprintf("page remove success\n");
+	//cprintf("page remove success\n");
 }
 
 //
@@ -706,8 +714,7 @@ void
 user_mem_assert(struct Env *env, const void *va, size_t len, int perm)
 {
 	if (user_mem_check(env, va, len, perm | PTE_U) < 0) {
-		cprintf("[%08x] user_mem_check assertion failure for "
-			"va %08x\n", env->env_id, user_mem_check_addr);
+	//	cprintf("[%08x] user_mem_check assertion failure for " "va %08x\n", env->env_id, user_mem_check_addr);
 		env_destroy(env);	// may not return
 	}
 }
