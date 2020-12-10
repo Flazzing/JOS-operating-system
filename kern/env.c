@@ -118,9 +118,9 @@ env_init(void)
 	// LAB 3: Your code here.
 	// SHould consist of NENV so NENV Should be the max init
 
-	int i = 0;
+	int i = NENV - 1;
 	cprintf("NENV %d", NENV);
-	for ( ;  i < NENV ; i++) {
+	for ( ;  i >= 0; i--) {
 		envs[i].env_id = 0;
 		envs[i].env_status = ENV_FREE;
 		
