@@ -119,7 +119,7 @@ env_init(void)
 	// SHould consist of NENV so NENV Should be the max init
 
 	int i = NENV - 1;
-	cprintf("NENV %d", NENV);
+	//cprintf("NENV %d", NENV);
 	for ( ;  i >= 0; i--) {
 		envs[i].env_id = 0;
 		envs[i].env_status = ENV_FREE;
@@ -302,12 +302,12 @@ region_alloc(struct Env *e, void *va, size_t len)
         uint32_t va_down = ROUNDDOWN((uint32_t)va, PGSIZE); // reminder stop here va is round down
 	uint32_t va_up = ROUNDUP((uint32_t) va + len, PGSIZE); //va + len round up
 
-	cprintf("va down is %d\n", va_down);
+	//cprintf("va down is %d\n", va_down);
 
 	// map virtual address 
 
-	cprintf("va down: %p\n", va_down);
-	cprintf("va up: %p\n", va_up);
+	//cprintf("va down: %p\n", va_down);
+	//cprintf("va up: %p\n", va_up);
 	uint32_t i = 0;
 	for ( i = va_down; i < va_up; i += PGSIZE){
 		struct PageInfo *phypage = page_alloc(0);

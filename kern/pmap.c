@@ -700,6 +700,41 @@ user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
 
+	// must no print or affect make grade
+
+	//cprintf("Virtual address: %x \n", va);
+	//cprintf("Len: %x\n", len);
+
+	// referencing env.c
+	uint32_t va_down = ROUNDDOWN((uint32_t)va, PGSIZE); // reminder stop here va is round down
+	uint32_t va_up = ROUNDUP((uint32_t) va + len, PGSIZE); //va + len round up
+
+	// must no print or affect make grade
+	//cprintf("va down: %p\n", va_down);
+	//cprintf("va up: %p\n", va_up);
+
+	uint32_t i = 0;
+
+	// conditions needed to be check
+	// permission is 'perm | PTE_P'.
+        // address must be smaller then ULIM to access the VA 
+        // the page table gives its permission
+
+
+	perm |= PTE_P; // sets PTE_P to perm 
+
+
+	for ( i = va_down; i < va_up; i += PGSIZE){
+
+		pte_t *pte = pgdir_walk(env->env_pgdir,(void *) i, perm);
+
+		if ( (pte == NULL) || ((*pte & perm) != perm) || ( i >  ULIM)   ){ // inverse logic to return error
+			// set eror memccheck 
+			user_mem_check_addr = i;
+			return -E_FAULT;
+		}
+	}
+
 	return 0;
 }
 
