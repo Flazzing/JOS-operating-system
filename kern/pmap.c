@@ -208,7 +208,7 @@ mem_init(void)
 	// LAB 3: Your code here.
 
 
-	envs = (struct Env *) boot_alloc(sizeof (struct Env) * NENV ); 
+	envs = (struct Env *) boot_alloc(sizeof (struct Env) * NENV );
 
 
 	//////////////////////////////////////////////////////////////////////
@@ -272,7 +272,7 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
-	
+
 	//cprintf("%d kernbased\n", -KERNBASE);
 	boot_map_region(kern_pgdir, KERNBASE, -KERNBASE, 0, PTE_W);
 	//cprintf("Success 3 \n");
@@ -491,20 +491,22 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 	       return &page_table[PTX(va)];
 	}
 	else {
-//		cprintf("success at 2 walk pgdir\n");
-		struct PageInfo *pp_page_table = page_alloc(1);
-		if (pp_page_table == NULL){ // page alloc can return null
-//			cprintf("pgdir walk cprintf return NULL\n");
-			return NULL;
-		}
-//		cprintf("pgdir walk didnt return null");
-		pp_page_table->pp_ref += 1; // why did the code fail here?
-//		cprintf("why nit printing\n");
-		pgdir[PDX(va)] = page2pa(pp_page_table) | PTE_P | PTE_U | PTE_W;
-		pte_t *page_table = (pde_t *)KADDR(PTE_ADDR(pgdir[PDX(va)]));
-		//	cprintf("pgdir success\n");
+		if (create) {
+	//		cprintf("success at 2 walk pgdir\n");
+			struct PageInfo *pp_page_table = page_alloc(1);
+			if (pp_page_table == NULL){ // page alloc can return null
+	//			cprintf("pgdir walk cprintf return NULL\n");
+				return NULL;
+			}
+	//		cprintf("pgdir walk didnt return null");
+			pp_page_table->pp_ref += 1; // why did the code fail here?
+	//		cprintf("why nit printing\n");
+			pgdir[PDX(va)] = page2pa(pp_page_table) | PTE_P | PTE_U | PTE_W;
+			pte_t *page_table = (pde_t *)KADDR(PTE_ADDR(pgdir[PDX(va)]));
+			//	cprintf("pgdir success\n");
 
-	    return &page_table[PTX(va)];
+			    return &page_table[PTX(va)];
+			}
 	}
 
 	//cprintf("Something is wrong\n");
@@ -654,7 +656,7 @@ page_remove(pde_t *pgdir, void *va)
 	//cprintf("exe at page remove\n");
 	pte_t *p_pte;
 	struct PageInfo *pp = page_lookup(pgdir, va, &p_pte);
-	if (!(*p_pte & PTE_P) || !pp ){ // TA physical page doesnt exist 
+	if (!(*p_pte & PTE_P) || !pp ){ // TA physical page doesnt exist
 		return ;
 	}
 		*p_pte = 0;
@@ -706,7 +708,6 @@ user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 	//cprintf("Len: %x\n", len);
 
 	// referencing env.c
-	uint32_t va_down = ROUNDDOWN((uint32_t)va, PGSIZE); // reminder stop here va is round down
 	uint32_t va_up = ROUNDUP((uint32_t) va + len, PGSIZE); //va + len round up
 
 	// must no print or affect make grade
@@ -717,19 +718,24 @@ user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 
 	// conditions needed to be check
 	// permission is 'perm | PTE_P'.
-        // address must be smaller then ULIM to access the VA 
+        // address must be smaller then ULIM to access the VA
         // the page table gives its permission
 
 
-	perm |= PTE_P; // sets PTE_P to perm 
+	perm |= PTE_P; // sets PTE_P to perm
 
 
-	for ( i = va_down; i < va_up; i += PGSIZE){
+	// Note we want to start with the given address, and only round it when going to the next
 
-		pte_t *pte = pgdir_walk(env->env_pgdir,(void *) i, perm);
+	for ( i = (uint32_t) va; i < va_up; i = ROUNDDOWN(i + PGSIZE, PGSIZE)){
 
-		if ( (pte == NULL) || ((*pte & perm) != perm) || ( i >  ULIM)   ){ // inverse logic to return error
-			// set eror memccheck 
+		pte_t *pte = pgdir_walk(env->env_pgdir,(void *) i, 0);
+        cprintf("%p | %p\n", i, pte);
+        cprintf("this will crash %p\n", *pte);
+
+		if ( (pte == NULL) || !(*pte & PTE_P) || i > ULIM || ((*pte & perm) != perm)  ){ // inverse logic to return error
+            cprintf("fault!\n");
+			// set eror memccheck
 			user_mem_check_addr = i;
 			return -E_FAULT;
 		}
@@ -749,7 +755,7 @@ void
 user_mem_assert(struct Env *env, const void *va, size_t len, int perm)
 {
 	if (user_mem_check(env, va, len, perm | PTE_U) < 0) {
-	//	cprintf("[%08x] user_mem_check assertion failure for " "va %08x\n", env->env_id, user_mem_check_addr);
+		cprintf("[%08x] user_mem_check assertion failure for " "va %08x\n", env->env_id, user_mem_check_addr);
 		env_destroy(env);	// may not return
 	}
 }

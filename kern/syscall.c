@@ -22,6 +22,7 @@ sys_cputs(const char *s, size_t len)
 
 	// LAB 3: Your code here.
 	//user_mem_check(curenv, s, len, PTE_U);
+    cprintf("got here\n");
 	user_mem_assert(curenv, s, len, PTE_U);
 	// Print the string supplied by the user.
 	cprintf("%.*s", len, s);
@@ -76,7 +77,7 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 
 	// reference lib/syscall.c (NOTE: Reminder)
 	switch (syscallno) {
-	
+
 	case SYS_cputs:
 	{
 		sys_cputs((const char *) a1, (size_t) a2);
