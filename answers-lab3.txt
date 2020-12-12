@@ -1,0 +1,3 @@
+1. The reason why we want to have individual handler function for each exception/interupt is because we want to be able to better enforce kernel mode protection. In short, we want to be able to better provide protection when handling error. 
+
+2. No we dont have to do anything to make the user/softint program behave correctly. The reason why it should produce trap 13 is because int $14 produces general protection fault "T_GPFLT".
